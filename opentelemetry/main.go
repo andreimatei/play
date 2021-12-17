@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
+	"go.opentelemetry.io/contrib/zpages"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/baggage"
-	"go.opentelemetry.io/otel/exporters/otlp"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 	"log"
+	"net/http"
 	"time"
 )
 
@@ -21,7 +22,7 @@ func main() {
 	//)
 	//exporter, err := otlp.NewExporter(ctx, otlpgrpc.NewDriver(otlpgrpc.WithEndpoint("localhost:49161")))
 	//exporter, err := otlp.NewExporter(ctx, otlpgrpc.NewDriver(otlpgrpc.WithEndpoint("localhost:55680")))
-	exporter, err := otlp.NewExporter(ctx, otlpgrpc.NewDriver(otlpgrpc.WithInsecure()))
+	exporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("failed to create exporter: %v", err)
 	}
@@ -32,7 +33,16 @@ func main() {
 	defer exporter.Shutdown(ctx)
 
 	bsp := sdktrace.NewBatchSpanProcessor(exporter)
-	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(bsp),sdktrace.WithSampler(sdktrace.AlwaysSample()))
+	zpagesSp := zpages.NewSpanProcessor()
+	tracezHandler := zpages.NewTracezHandler(zpagesSp)
+	http.Handle("/tracez", tracezHandler)
+
+	go func() {
+		http.ListenAndServe("localhost:8080", tracezHandler)
+		log.Printf("listening on localhost:8080")
+	}()
+
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(bsp), sdktrace.WithSpanProcessor(zpagesSp), sdktrace.WithSampler(sdktrace.AlwaysSample()))
 
 	otel.SetTracerProvider(tp)
 	propagator := propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{})
@@ -41,16 +51,22 @@ func main() {
 	// Handle this error in a sensible manner where possible
 	defer func() { _ = tp.Shutdown(ctx) }()
 
-	fooKey := attribute.Key("ex.com/foo")
-	barKey := attribute.Key("ex.com/bar")
 	lemonsKey := attribute.Key("ex.com/lemons")
 	anotherKey := attribute.Key("ex.com/another")
 
 	tracer := otel.Tracer("ex.com/basic")
-	ctx = baggage.ContextWithValues(ctx,
-		fooKey.String("foo1"),
-		barKey.String("bar1"),
-	)
+	member, err := baggage.NewMember("foo1", "bar1")
+	if err != nil {
+		panic(err)
+	}
+	b, err := baggage.New(member)
+	if err != nil {
+		panic(err)
+	}
+	ctx = baggage.ContextWithBaggage(ctx, b)
+	//fooKey.String("foo1"),
+	//	barKey.String("bar1"),
+	//)
 	log.Printf("1")
 
 	func(ctx context.Context) {
@@ -72,5 +88,5 @@ func main() {
 	}(ctx)
 	log.Printf("2")
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(100 * time.Second)
 }
