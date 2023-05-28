@@ -1,0 +1,15 @@
+no-loclists-on-go120
+- go1.20.4 doesn't generate location lists for variables x1,x2 whereas go1.19 did
+- on go.1.20.4, they look like:
+0x00000aa9:     DW_TAG_variable
+                  DW_AT_name    ("x1")
+                  DW_AT_decl_line       (20)
+                  DW_AT_type    (0x0000000000053940 "uint8[5000]")
+                  DW_AT_location        (<empty>)
+
+0x00000ab3:     DW_TAG_variable
+                  DW_AT_name    ("x2")
+                  DW_AT_decl_line       (21)
+                  DW_AT_type    (0x0000000000053940 "uint8[5000]")
+                  DW_AT_location        (<empty>)
+
