@@ -13,3 +13,5 @@ no-loclists-on-go120
                   DW_AT_type    (0x0000000000053940 "uint8[5000]")
                   DW_AT_location        (<empty>)
 
+I tracked it to a74e5f584e96cc89a8f6a1bb1a8cd9fc6ed6e72d
+Parent: a726c9f662
