@@ -1,4 +1,5 @@
 no-loclists-on-go120
+https://github.com/golang/go/issues/60479
 - go1.20.4 doesn't generate location lists for variables x1,x2 whereas go1.19 did
 - on go.1.20.4, they look like:
 0x00000aa9:     DW_TAG_variable
@@ -14,4 +15,8 @@ no-loclists-on-go120
                   DW_AT_location        (<empty>)
 
 I tracked it to a74e5f584e96cc89a8f6a1bb1a8cd9fc6ed6e72d
-Parent: a726c9f662
+Parent: a726c9f66
+
+loclist-covering-epilogue:
+https://github.com/golang/go/issues/60493
+- location list for var extends too much, into stack-growing code
