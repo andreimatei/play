@@ -3,6 +3,8 @@ package main
 type T struct {
 	// The size of the array matters; only 1 element is not enough for the demo.
 	x [2]byte
+	// Adding a pointer makes the problem go away, which seems to track with a74e5f584e.
+	// p *int
 }
 
 //go:noinline
